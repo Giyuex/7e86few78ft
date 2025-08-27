@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preload" href="speaker1.svg" as="image">
+    <link rel="preload" href="speaker2.svg" as="image">
+    <link rel="preload" href="speaker3.svg" as="image">
     <style>
         /* Video Background - Mobile Fixed */
         .video-background {
@@ -875,7 +878,7 @@
             try {
                 switch(soundState) {
                     case 1: // 1 wave - 50% volume
-                        speakerImg.src = 'speaker1.svg';
+                        
                         speakerIcon.classList.remove('muted');
                         tooltip.textContent = 'Volume Low';
                         soundEnabled = true;
@@ -1234,6 +1237,7 @@
 </body>
 
 </html>
+
 
 
 
