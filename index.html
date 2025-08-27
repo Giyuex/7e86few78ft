@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="preload" href="speaker1.svg" as="image">
-    <link rel="preload" href="speaker2.svg" as="image">
-    <link rel="preload" href="speaker3.svg" as="image">
     <style>
         /* Video Background - Mobile Fixed */
         .video-background {
@@ -735,7 +732,10 @@
     <div class="social-icons">
         <!-- Speaker Icon -->
         <div class="icon-container speaker-icon" onclick="toggleSound()" id="speakerIcon">
-            <img src="speaker3.svg" alt="Speaker" id="speakerImg" style="width: 24px; height: 24px; filter: brightness(0) saturate(100%) invert(64%) sepia(23%) saturate(463%) hue-rotate(350deg) brightness(93%) contrast(85%);">
+            <!-- Speaker SVG will be dynamically updated by JavaScript -->
+            <svg id="speakerImg" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: brightness(0) saturate(100%) invert(64%) sepia(23%) saturate(463%) hue-rotate(350deg) brightness(93%) contrast(85%);">
+                <path d="M22 9L16 15M16 9L22 15M3 10.5V13.5C3 14.6046 3.5 15.5 5.5 16C7.5 16.5 9 21 12 21C14 21 14 3 12 3C9 3 7.5 7.5 5.5 8C3.5 8.5 3 9.39543 3 10.5Z" stroke="#d5b595" stroke-width="0.96" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <div class="tooltip">Muted</div>
         </div>
 
@@ -827,6 +827,16 @@
         let mysteryClickCount = 0;
         let isUnlocked = false;
 
+        // Speaker SVG paths for different states
+        const speakerSVGs = {
+            // Speaker 1 (Low volume)
+            1: 'M16 8.99998C16.5 9.49998 17 10.5 17 12C17 13.5 16.5 14.5 16 15M3 10.5V13.5C3 14.6046 3.5 15.5 5.5 16C7.5 16.5 9 21 12 21C14 21 14 3 12 3C9 3 7.5 7.5 5.5 8C3.5 8.5 3 9.39543 3 10.5Z',
+            // Speaker 2 (High volume)
+            2: 'M19 6C20.5 7.5 21 10 21 12C21 14 20.5 16.5 19 18M16 8.99998C16.5 9.49998 17 10.5 17 12C17 13.5 16.5 14.5 16 15M3 10.5V13.5C3 14.6046 3.5 15.5 5.5 16C7.5 16.5 9 21 12 21C14 21 14 3 12 3C9 3 7.5 7.5 5.5 8C3.5 8.5 3 9.39543 3 10.5Z',
+            // Speaker 3 (Muted)
+            3: 'M22 9L16 15M16 9L22 15M3 10.5V13.5C3 14.6046 3.5 15.5 5.5 16C7.5 16.5 9 21 12 21C14 21 14 3 12 3C9 3 7.5 7.5 5.5 8C3.5 8.5 3 9.39543 3 10.5Z'
+        };
+
         // Initialize audio when page loads
         document.addEventListener('DOMContentLoaded', function() {
             backgroundMusic = document.getElementById('backgroundMusic');
@@ -865,9 +875,10 @@
             }, 1500);
         }
 
-        // Toggle sound function with music control
+        // Toggle sound function with music control and SVG update
         async function toggleSound() {
-            const speakerImg = document.getElementById('speakerImg');
+            const speakerSVG = document.getElementById('speakerImg');
+            const speakerPath = speakerSVG.querySelector('path');
             const speakerIcon = document.getElementById('speakerIcon');
             const tooltip = speakerIcon.querySelector('.tooltip');
             
@@ -878,7 +889,7 @@
             try {
                 switch(soundState) {
                     case 1: // 1 wave - 50% volume
-                        
+                        speakerPath.setAttribute('d', speakerSVGs[1]);
                         speakerIcon.classList.remove('muted');
                         tooltip.textContent = 'Volume Low';
                         soundEnabled = true;
@@ -891,7 +902,7 @@
                         break;
                         
                     case 2: // 2 waves - 100% volume
-                        speakerImg.src = 'speaker2.svg';
+                        speakerPath.setAttribute('d', speakerSVGs[2]);
                         speakerIcon.classList.remove('muted');
                         tooltip.textContent = 'Volume High';
                         soundEnabled = true;
@@ -904,7 +915,7 @@
                         break;
                         
                     case 3: // Muted
-                        speakerImg.src = 'speaker3.svg';
+                        speakerPath.setAttribute('d', speakerSVGs[3]);
                         speakerIcon.classList.add('muted');
                         tooltip.textContent = 'Muted';
                         soundEnabled = false;
@@ -1235,10 +1246,3 @@
         }
     </script>
 </body>
-
-</html>
-
-
-
-
-
