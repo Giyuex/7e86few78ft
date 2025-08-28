@@ -8,7 +8,7 @@
     
     <!-- Preload critical resources -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700;800&display=swap" as="style">
-    <link rel="preload" href="fas.mp4" as="video" type="video/mp4">
+    <!-- Remove video preload for faster initial load -->
     <link rel="preload" href="de.png" as="image">
     
     <!-- Load fonts -->
@@ -40,7 +40,7 @@
             position: relative;
         }
 
-        /* Video Background - Optimized */
+        /* Video Background - Optimized with fallback */
         .video-background {
             position: fixed;
             top: 0;
@@ -50,9 +50,27 @@
             object-fit: cover;
             object-position: center;
             z-index: -2;
-            background-color: #000;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
             pointer-events: none;
             will-change: transform;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .video-background.loaded {
+            opacity: 1;
+        }
+
+        /* Fallback background while video loads */
+        .video-fallback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+            z-index: -3;
+            pointer-events: none;
         }
 
         .video-overlay {
@@ -212,7 +230,7 @@
             overflow-wrap: break-word;
         }
 
-        /* Logo */
+        /* Logo with lazy loading optimization */
         .custom-logo {
             width: 120px;
             height: 120px;
@@ -222,6 +240,13 @@
             box-shadow: 0 15px 30px rgba(191, 161, 130, 0.4);
             border: 3px solid var(--primary-gold);
             margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 100%);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .custom-logo.loaded {
+            opacity: 1;
         }
 
         /* Form elements */
@@ -451,8 +476,11 @@
     </style>
 </head>
 <body>
-    <!-- Video Background -->
-    <video class="video-background" autoplay muted loop playsinline>
+    <!-- Fallback background -->
+    <div class="video-fallback"></div>
+    
+    <!-- Video Background - Lazy loaded -->
+    <video class="video-background" muted loop playsinline preload="none" id="backgroundVideo">
         <source src="fas.mp4" type="video/mp4">
     </video>
     
@@ -497,14 +525,14 @@
         Copied @giyuex to clipboard!
     </div>
 
-    <audio id="backgroundMusic" loop>
+    <audio id="backgroundMusic" loop preload="none">
         <source src="1.mp3" type="audio/mpeg">
     </audio>
 
     <main class="container">
         <div class="glass-card">
             <header class="logo-container">
-                <img src="de.png" alt="Giyuex Logo" class="custom-logo" loading="lazy">
+                <img src="de.png" alt="Giyuex Logo" class="custom-logo" loading="lazy" id="logoImage">
                 <h1 class="brand-name">GIYUEX</h1>
             </header>
             
@@ -549,7 +577,8 @@
         const CONFIG = {
             SOUND_ENABLED: false,
             SOUND_STATE: 3, // Start muted
-            MYSTERY_UNLOCK_COUNT: 10
+            MYSTERY_UNLOCK_COUNT: 10,
+            LAZY_LOAD_DELAY: 1000 // 1 second delay for heavy assets
         };
 
         // State management
@@ -557,7 +586,13 @@
             soundState: CONFIG.SOUND_STATE,
             mysteryClickCount: 0,
             isUnlocked: false,
-            backgroundMusic: null
+            backgroundMusic: null,
+            backgroundVideo: null,
+            assetsLoaded: {
+                logo: false,
+                video: false,
+                audio: false
+            }
         };
 
         // Speaker SVG paths
@@ -567,6 +602,44 @@
             3: 'M22 9L16 15M16 9L22 15M3 10.5V13.5C3 14.6046 3.5 15.5 5.5 16C7.5 16.5 9 21 12 21C14 21 14 3 12 3C9 3 7.5 7.5 5.5 8C3.5 8.5 3 9.39543 3 10.5Z'
         };
 
+        // Lazy loading functions
+        function lazyLoadAssets() {
+            // Load video after initial page load
+            setTimeout(() => {
+                const video = $('backgroundVideo');
+                if (video && !state.assetsLoaded.video) {
+                    video.load();
+                    video.addEventListener('canplay', () => {
+                        state.assetsLoaded.video = true;
+                        video.classList.add('loaded');
+                        video.play().catch(() => console.log('Video autoplay blocked'));
+                    });
+                    video.addEventListener('loadstart', () => {
+                        console.log('Video loading started');
+                    });
+                }
+            }, CONFIG.LAZY_LOAD_DELAY);
+
+            // Load audio when first needed (on sound toggle)
+            // Audio will be lazy loaded in toggleSound function
+        }
+
+        // Image load handler
+        function handleImageLoad() {
+            const logoImage = $('logoImage');
+            if (logoImage && !state.assetsLoaded.logo) {
+                logoImage.addEventListener('load', () => {
+                    state.assetsLoaded.logo = true;
+                    logoImage.classList.add('loaded');
+                });
+                
+                // If image is already cached, trigger load immediately
+                if (logoImage.complete) {
+                    state.assetsLoaded.logo = true;
+                    logoImage.classList.add('loaded');
+                }
+            }
+        }
         // Utility functions
         const $ = (id) => document.getElementById(id);
         const showNotification = (text, duration = 3000) => {
@@ -580,11 +653,16 @@
             }, duration);
         };
 
-        // Audio management
+        // Audio management with lazy loading
         async function toggleSound() {
-            // Make sure audio element exists
+            // Lazy load audio on first interaction
             if (!state.backgroundMusic) {
                 state.backgroundMusic = $('backgroundMusic');
+                if (state.backgroundMusic && !state.assetsLoaded.audio) {
+                    state.backgroundMusic.load();
+                    state.assetsLoaded.audio = true;
+                }
+                
                 if (!state.backgroundMusic) {
                     console.log('Audio element not found');
                     return;
@@ -768,9 +846,11 @@
 
         // Initialize everything
         function init() {
-            // Initialize audio
+            // Handle image loading
+            handleImageLoad();
+            
+            // Initialize audio reference (but don't load yet)
             state.backgroundMusic = $('backgroundMusic');
-            state.backgroundMusic.volume = 0;
             
             // Set up keyboard shortcuts
             $('opinionInput')?.addEventListener('keydown', (e) => {
@@ -779,13 +859,16 @@
                 }
             });
 
-            // Start animations
+            // Start lightweight animations immediately
             setInterval(createParticle, 1000);
             setInterval(createTwinklingStar, 3000);
             
             // Create initial effects
             for (let i = 0; i < 8; i++) setTimeout(() => createParticle(), i * 500);
             for (let i = 0; i < 20; i++) setTimeout(() => createTwinklingStar(), i * 200);
+            
+            // Start lazy loading heavy assets after page is interactive
+            lazyLoadAssets();
         }
 
         // Start when page loads
