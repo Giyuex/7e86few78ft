@@ -40,7 +40,7 @@
             position: relative;
         }
 
-        /* Video Background - Optimized with fallback */
+        /* Video Background - Optimized with Android Chrome fix */
         .video-background {
             position: fixed;
             top: 0;
@@ -55,6 +55,14 @@
             will-change: transform;
             opacity: 0;
             transition: opacity 1s ease-in-out;
+            /* Force hardware acceleration */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            /* Prevent blur on Android Chrome */
+            filter: none;
+            -webkit-filter: none;
+            /* Force video to be treated as foreground */
+            isolation: isolate;
         }
 
         .video-background.loaded {
@@ -166,10 +174,11 @@
             padding: 20px;
         }
 
-        /* Glass card */
+        /* Glass card - Android Chrome video blur fix */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(191, 161, 130, 0.3);
             border-radius: var(--border-radius);
             padding: 60px 50px;
@@ -178,6 +187,11 @@
             width: 100%;
             animation: slideUp 1s ease-out;
             transition: var(--transition);
+            /* Force new stacking context */
+            isolation: isolate;
+            /* Ensure proper layering on Android */
+            z-index: 10;
+            position: relative;
         }
 
         .glass-card:hover {
@@ -202,22 +216,27 @@
             letter-spacing: 1px;
         }
 
-        .main-title,
-        .subtitle-text,
-        .status-text,
-        .opinion-title,
-        .disclaimer-text {
-            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 50%, var(--lighter-gold) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
         .main-title {
             font-size: clamp(2.5rem, 5vw, 3.5rem);
             font-weight: 800;
             margin-bottom: 20px;
             letter-spacing: -2px;
+        }
+
+        .main-title span {
+            display: inline-block;
+            white-space: nowrap;
+            background: linear-gradient(45deg, #a68b5b 0%, var(--primary-gold) 25%, var(--light-gold) 50%, var(--lighter-gold) 75%, #f4e4bc 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
         }
 
         .subtitle {
@@ -228,6 +247,15 @@
             word-wrap: break-word;
             word-break: break-all;
             overflow-wrap: break-word;
+        }
+
+        .subtitle-text {
+            background: linear-gradient(45deg, #6b5a42 0%, #9d8464 20%, var(--primary-gold) 40%, var(--light-gold) 60%, var(--lighter-gold) 80%, #dcc49a 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease-in-out infinite alternate;
         }
 
         /* Logo with lazy loading optimization */
@@ -249,6 +277,15 @@
             opacity: 1;
         }
 
+        .status-text,
+        .opinion-title,
+        .disclaimer-text {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 50%, var(--lighter-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         /* Form elements */
         .opinion-form {
             background: rgba(0, 0, 0, 0.4);
@@ -256,6 +293,12 @@
             border-radius: 15px;
             padding: 30px;
             margin-top: 40px;
+        }
+
+        .opinion-title {
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            font-weight: 600;
         }
 
         .opinion-input {
@@ -479,8 +522,9 @@
     <!-- Fallback background -->
     <div class="video-fallback"></div>
     
-    <!-- Video Background - Lazy loaded -->
-    <video class="video-background" muted loop playsinline preload="none" id="backgroundVideo">
+    <!-- Video Background - Android Chrome optimized -->
+    <video class="video-background" muted loop playsinline preload="none" id="backgroundVideo" 
+           webkit-playsinline="true" x5-playsinline="true" x5-video-player-type="h5-page">
         <source src="fas.mp4" type="video/mp4">
     </video>
     
@@ -526,7 +570,7 @@
     </div>
 
     <audio id="backgroundMusic" loop preload="none">
-        <source src="1.ogg" type="audio/mpeg">
+        <source src="1.ogg" type="audio/ogg">
     </audio>
 
     <main class="container">
@@ -536,7 +580,7 @@
                 <h1 class="brand-name">GIYUEX</h1>
             </header>
             
-            <h2 class="main-title">Under Construction</h2>
+            <h2 class="main-title"><span>Under Construction</span></h2>
             <p class="subtitle">
                 <span class="subtitle-text">JXwDTXlmhli8KEKrXCBgF5061NOkmzJSA3sHp3pM0Kqpkb7nnznCRzJ4AxF2i1k9knP4Inhj+JR5EQBAp2fcqw==</span>
                 <span class="emoji">💀</span>
@@ -612,6 +656,19 @@
                     video.addEventListener('canplay', () => {
                         state.assetsLoaded.video = true;
                         video.classList.add('loaded');
+                        
+                        // Android Chrome specific fixes
+                        const isAndroid = /Android/i.test(navigator.userAgent);
+                        const isChrome = /Chrome/i.test(navigator.userAgent);
+                        
+                        if (isAndroid && isChrome) {
+                            // Force video to stay sharp on Android Chrome
+                            video.style.filter = 'none';
+                            video.style.webkitFilter = 'none';
+                            video.style.transform = 'translateZ(0)';
+                            video.style.webkitTransform = 'translateZ(0)';
+                        }
+                        
                         video.play().catch(() => console.log('Video autoplay blocked'));
                     });
                     video.addEventListener('loadstart', () => {
